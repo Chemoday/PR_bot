@@ -4,17 +4,21 @@ import peewee
 db = peewee.SqliteDatabase('main.db')
 db.connect()
 
+
 class BaseModel(peewee.Model):
     class Meta:
         database = db
+
 
 class Keys(BaseModel):
     bot_login = peewee.TextField(default="")
     vk_token = peewee.TextField(default="", null=True)
     vk_token_expire_dt = peewee.IntegerField(null=True)
 
+
 class Auth_module(object):
-    def get_vk_token(self, bot_login):
+    @staticmethod
+    def get_vk_token(bot_login):
         try:
             keys = Keys.get(Keys.bot_login == bot_login)
             return keys

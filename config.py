@@ -2,12 +2,15 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
 
-
+system_type = "Windows"
 
 
 #vk config
 vk_login = 'aleksandr.kuhhar@gmail.com'
-vk_password = '###############'
+vk_password = '######################'
+vk_token_url = "http://api.vkontakte.ru/oauth/authorize?client_id=4984258" \
+               "&scope=wall&redirect_uri=http://api.vk.com/blank.html" \
+               "&display=page&response_type=token"
 
 #PhantomJS config
 user_agent = (

@@ -23,26 +23,40 @@ class VK(object):
 
     def create_token(self):
         #Create bot token
-        driver = webdriver.PhantomJS(service_args=config.service_args,
-                                     desired_capabilities=config.dcap)
+        try:
+            if config.system_type == "Windows":
+                driver = webdriver.PhantomJS(executable_path='C:/Program Files (x86)/phantomjs/bin/phantomjs.exe',
+                                             service_args=config.service_args,
+                                             desired_capabilities=config.dcap)
+                driver.get(config.vk_token_url)
+            else:
+                driver = webdriver.PhantomJS(service_args=config.service_args,
+                                             desired_capabilities=config.dcap)
 
-        driver.get("http://api.vkontakte.ru/oauth/authorize?"
-                  "client_id=4984258&scope=wall"
-                  "&redirect_uri=http://api.vk.com/blank.html"
-                  "&display=page&response_type=token")
+                driver.get(config.vk_token_url)
+        except AttributeError:
+            print("Problem with phantomJS, possible path is missed")
+            return
 
-        user_input = driver.find_element_by_name("email")
-        user_input.send_keys(self.bot_email)
-        password_input = driver.find_element_by_name("pass")
-        password_input.send_keys(self.bot_password)
+        try:
+            user_input = driver.find_element_by_name("email")
+            user_input.send_keys(self.bot_email)
+            password_input = driver.find_element_by_name("pass")
+            password_input.send_keys(self.bot_password)
 
-        submit = driver.find_element_by_id("install_allow")
-        submit.click()
-        time.sleep(2)
-        current_url = driver.current_url
-        #TODO add fail proof parsing
-        access_list = (current_url.split("#"))[1].split("&")
-        token = (access_list[0].split("="))[1]  # access_token
-        driver.close()
-        driver.quit()
+            submit = driver.find_element_by_id("install_allow")
+            submit.click()
+            time.sleep(2)
+            current_url = driver.current_url
+            #TODO add fail proof parsing
+            access_list = (current_url.split("#"))[1].split("&")
+            token = (access_list[0].split("="))[1]  # access_token
+            driver.close()
+            driver.quit()
+            print("Got token, sending to server")
+            print(token)
+        except:
+            print("Problem with token page, something is missed")
+            return
+
         Auth_module.set_vk_token(bot_login=self.bot_email, token=token)
