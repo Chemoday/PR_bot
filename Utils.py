@@ -5,6 +5,6 @@ import config
 def detect_system():
     platform_type = platform.system()
     if platform_type == 'Windows':
-        config.system_type = platform_type
+        config.os_type = platform_type
     else:
-        config.system_type = 'Linux'
+        config.os_type = 'Linux'

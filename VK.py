@@ -1,49 +1,66 @@
 import time
-from selenium import  webdriver
-from Database import Auth_module
+import datetime
+from selenium import webdriver
+from Database import Keys, Groups
+import requests
+from bs4 import BeautifulSoup
 
 import config
+
 
 class VK(object):
 
     def __init__(self, email, password):
         self.bot_email = email
         self.bot_password = password
-        token = self.get_token()
-        self.bot_token = token
+        self.bot_token = self.get_token()
 
-    def check_token(self):
+    def __repr__(self):
+        output = "Email: {email} | Token: {token}".format(email=self.bot_email, token=self.bot_token)
+        return output
+
+    def check_token(self, token):
         #Check bot token status, that token is exist and not expired
-        pass
+        now = datetime.datetime.now().timestamp()
+        if token.vk_token_expire_dt > now:
+            print("Token is active")
+            return True
+        else:
+            print("Token expired")
+            return False
 
     def get_token(self):
         #Get bot token from database
+        token = Keys.get_vk_token(email=self.bot_email)
+        if token:
+            if self.check_token(token):
+                return token
 
-        pass
+        return self.create_token()
 
     def create_token(self):
         #Create bot token
         try:
-            if config.system_type == "Windows":
+            if config.os_type == "Windows":
                 driver = webdriver.PhantomJS(executable_path='C:/Program Files (x86)/phantomjs/bin/phantomjs.exe',
                                              service_args=config.service_args,
                                              desired_capabilities=config.dcap)
-                driver.get(config.vk_token_url)
+
             else:
                 driver = webdriver.PhantomJS(service_args=config.service_args,
                                              desired_capabilities=config.dcap)
 
-                driver.get(config.vk_token_url)
         except AttributeError:
             print("Problem with phantomJS, possible path is missed")
-            return
+            return None
+
+        driver.get(config.vk_token_url)
 
         try:
             user_input = driver.find_element_by_name("email")
             user_input.send_keys(self.bot_email)
             password_input = driver.find_element_by_name("pass")
             password_input.send_keys(self.bot_password)
-
             submit = driver.find_element_by_id("install_allow")
             submit.click()
             time.sleep(2)
@@ -59,4 +76,55 @@ class VK(object):
             print("Problem with token page, something is missed")
             return
 
-        Auth_module.set_vk_token(bot_login=self.bot_email, token=token)
+        return token
+
+    def set_group_info(self, group_id):
+        group_info = Groups.get_group_info(group_id=group_id)
+        if not group_info:
+            Groups.set_group_info(group_id=group_id)
+            group_info = Groups.get_group_info(group_id=group_id)
+
+        #do smth with users
+        #update Groups - user_id, offset, total_users
+        Groups.update_group_info(group_id=group_info.group_id,
+                                 offset=group_info.offset + 1000,
+                                 total_users=0) #TODO add data from json
+
+    @staticmethod
+    def get_profile_photo_link(user_id):
+        html_source = requests.get(config.vk_profile_link + str(user_id)).text
+        html = BeautifulSoup(html_source, 'html.parser')
+
+        try:
+            photo_link_raw = html.find('div', class_='owner_panel profile_panel').find('a')['href'].split('?') #Find url of profile pic and return it.
+            photo_link = photo_link_raw[0].replace('/photo', "")
+            print('Getting profile photo link for user:{0}'.format(user_id))
+            return photo_link
+        except TypeError:
+            print('Profile_photo_link parsing error| user_id: {0}'.format(user_id))
+            return None
+
+
+
+    def autolikes_start(self):
+        #Get user_list from Database
+
+        user_id_list = [6256891, 355428889, 18393105]
+        for user in user_id_list:
+            photo_link = VK.get_profile_photo_link(user)
+            if not photo_link:
+                continue #next user_id if no photo_link
+            self.set_like(photo_link=photo_link, content_type= 'photo')
+            time.sleep(2)
+
+    def set_like(self, photo_link, content_type):
+        photo_link = photo_link.split('_')
+        owner_id = photo_link[0]
+        item_id = photo_link[1]
+        print(self.bot_token)
+        url = config.vk_like_api + 'type={t}&owner_id={o}&item_id{i}&access_key={k}'.format(
+            t=content_type, o=owner_id, i=item_id, k=self.bot_token)
+        r = requests.get(url)
+        print(r.text)
+        print('Liked: vk.com/{0}'.format(photo_link))
+        #TODO add url handler
