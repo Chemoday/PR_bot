@@ -15,6 +15,8 @@ vk_token_url = "http://api.vkontakte.ru/oauth/authorize?client_id=4984258" \
                "&display=page&response_type=token"
 vk_group_members_api = 'https://api.vk.com/method/groups.getMembers?'
 groups_to_parse= 109991106
+vk_male_sex = 2
+vk_female_sex = 1
 
 #PhantomJS config
 user_agent = (

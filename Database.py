@@ -36,7 +36,7 @@ class Keys(BaseModel):
 
     @staticmethod
     def set_vk_token(bot_login, token):
-        expire_dt = datetime.datetime.now().timestamp() + 86400
+        expire_dt = datetime.datetime.now().timestamp() + 86400 #86400 - one day token
         try:
             row = Keys.get(Keys.bot_login == bot_login)
             print("Auth key got succesfully")
@@ -102,6 +102,26 @@ class Groups(BaseModel):
             print(row)
         except peewee.IntegrityError:
             print("Group id:{0} not saved".format(group_id))
+
+class Users(BaseModel):
+    vk_user_id = peewee.IntegerField(null=True, default=None)
+    vk_group_id = peewee.IntegerField(null=True, default=None)
+    vk_likes_count = peewee.IntegerField(default=0)
+    created_dt = peewee.DateField(default=datetime.datetime.now())
+
+    @staticmethod
+    def get_vk_users():
+        #make logic to get users by filter
+        #with priority
+        pass
+
+    @staticmethod
+    def save_users(members_list):
+        #TODO save for various networks
+        for user in members_list:
+            row = Users(vk_user_id=user.vk_id, vk_group_id=user.vk_group_id)
+            row.save()
+
 
 
 

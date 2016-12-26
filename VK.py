@@ -1,11 +1,12 @@
 import time
 import datetime
 from selenium import webdriver
-from Database import Keys, Groups
+from Database import Keys, Groups, Users
 import requests
 from bs4 import BeautifulSoup
 import json
 import config
+from Users import User
 
 
 
@@ -107,16 +108,35 @@ class VK(object):
             print('Profile_photo_link parsing error| user_id: {0}'.format(user_id))
             return None
 
-    def get_group_members(self, group_id):
+    def parse_group_members(self, group_id):
+
         group_info = Groups.get_group_info(group_id=group_id)
-        url = config.vk_group_members_api + 'group_id={id}&sort=id_desc&offset={offset}&count=1000'.format(
+        url_params = 'group_id={id}&sort=id_desc&&fields=sex,last_seen&offset={offset}&count=1000'.format(
             id=group_id, offset=group_info.offset
         )
+        url = config.vk_group_members_api + url_params
         r = requests.get(url)
-        print(r.text)
-        test_ = json.JSONEncoder(r.text)
-        print(test_[0])
+        group_data = json.loads(r.text)
+        members_list_unsorted = group_data["response"]["users"]
+        group_members_total = group_data["response"]["count"]
+        vk_id_list = self._check_group_members(member_list_unsorted=members_list_unsorted)
+        members_list = []
+        for vk_id in vk_id_list:
+            user = User(vk_id=vk_id, vk_group_id=group_id)
+            members_list.append(user)
+        Users.save_users(members_list)
 
+
+
+    def _check_group_members(self, member_list_unsorted):
+        vk_id_list = []
+        month_ago = datetime.datetime.now().timestamp() - 2592000 # 2592000 - One month in seconds, average
+        for member in member_list_unsorted:
+            member_sex = member["sex"]
+            member_last_seen = member["last_seen"]["time"]
+            if member_sex == config.vk_male_sex and member_last_seen > month_ago:
+                vk_id_list.append(member["uid"])
+        return vk_id_list
 
 
 
