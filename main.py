@@ -1,16 +1,17 @@
 import config
 from VK import VK
-from Database import create_db
+import Database
 from Utils import detect_system
 
 
 
 def start_bot():
     detect_system()
-    create_db()
+    Database.create_db()
     vk = VK(email=config.vk_login,
             password=config.vk_password)
-    vk.create_token()
+    Database.Groups.set_group_info(config.groups_to_parse)
+    vk.get_group_members(group_id=109991106)
 
 
 start_bot()

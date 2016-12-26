@@ -4,15 +4,17 @@ from selenium import webdriver
 from Database import Keys, Groups
 import requests
 from bs4 import BeautifulSoup
-
+import json
 import config
+
 
 
 class VK(object):
 
     def __init__(self, email, password):
         self.bot_email = email
-        self.bot_password = password
+        self.bot_password = Keys.get_bot_pass(email)
+        #self.bot_password = password Change on more secure method
         self.bot_token = self.get_token()
 
     def __repr__(self):
@@ -72,6 +74,7 @@ class VK(object):
             driver.quit()
             print("Got token, sending to server")
             print(token)
+            Keys.set_vk_token(bot_login=self.bot_email, token=token)
         except:
             print("Problem with token page, something is missed")
             return
@@ -103,6 +106,17 @@ class VK(object):
         except TypeError:
             print('Profile_photo_link parsing error| user_id: {0}'.format(user_id))
             return None
+
+    def get_group_members(self, group_id):
+        group_info = Groups.get_group_info(group_id=group_id)
+        url = config.vk_group_members_api + 'group_id={id}&sort=id_desc&offset={offset}&count=1000'.format(
+            id=group_id, offset=group_info.offset
+        )
+        r = requests.get(url)
+        print(r.text)
+        test_ = json.JSONEncoder(r.text)
+        print(test_[0])
+
 
 
 

@@ -12,12 +12,18 @@ class BaseModel(peewee.Model):
 
 class Keys(BaseModel):
     bot_login = peewee.TextField(default="")
+    bot_password = peewee.TextField(default="")
     vk_token = peewee.TextField(default="", null=True)
     vk_token_expire_dt = peewee.IntegerField(null=True)
 
     def __repr__(self):
         output = "{0} | {1} | {2}".format(self.bot_login, self.vk_token, self.vk_token_expire_dt)
         return output
+
+    @staticmethod
+    def get_bot_pass(email):
+        bot_pass = Keys.get(Keys.bot_login == email)
+        return bot_pass.bot_password
 
     @staticmethod
     def get_vk_token(email):
@@ -58,12 +64,17 @@ class Keys(BaseModel):
                 return
 
 class Groups(BaseModel):
-    #TODO add group name
     group_id = peewee.IntegerField(primary_key=True, unique=True)
     offset = peewee.IntegerField(default=0)
     total_users = peewee.IntegerField(default=0)
     useful_users = peewee.IntegerField(default=0)
     fully_parsed = peewee.BooleanField(default=False)
+    #TODO add group name
+
+    def __repr__(self):
+        output = 'Group id: {0}'.format(self.group_id)
+        return output
+
 
     @staticmethod
     def update_group_info(group_id, offset, total_users):
@@ -86,9 +97,11 @@ class Groups(BaseModel):
     def set_group_info(group_id):
         try:
             row = Groups(group_id=group_id)
-            row.save()
-        except Groups.IntegrityError:
-            print("Error on save group info")
+            row.save(force_insert=True)
+            print("Group is saved")
+            print(row)
+        except peewee.IntegrityError:
+            print("Group id:{0} not saved".format(group_id))
 
 
 
