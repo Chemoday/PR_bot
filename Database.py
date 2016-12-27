@@ -110,10 +110,11 @@ class Users(BaseModel):
     created_dt = peewee.DateField(default=datetime.datetime.now())
 
     @staticmethod
-    def get_vk_users():
-        #make logic to get users by filter
-        #with priority
-        pass
+    def get_fresh_vk_users():
+        user_list = Users.select().where((Users.vk_user_id is not None) & (Users.vk_likes_count != 0)).order_by(
+            Users.created_dt.desc()).limit(100)
+        return user_list
+
 
     @staticmethod
     def save_users(members_list):
@@ -122,6 +123,14 @@ class Users(BaseModel):
             row = Users(vk_user_id=user.vk_id, vk_group_id=user.vk_group_id)
             row.save()
 
+class Statistics(BaseModel):
+    total_likes = peewee.IntegerField(default=None)
+
+    @staticmethod
+    def update_likes():
+        r = Statistics.get()
+        q = Statistics.update(total_likes=r.total_likes + 1)
+        q.execute()
 
 
 
