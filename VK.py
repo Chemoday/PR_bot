@@ -24,8 +24,9 @@ class VK(object):
 
     def check_token(self, token):
         #Check bot token status, that token is exist and not expired
+
         now = datetime.datetime.now().timestamp()
-        if token.vk_token_expire_dt > now:
+        if token.vk_token_expire_dt < now:
             print("Token is active")
             return True
         else:
@@ -105,7 +106,7 @@ class VK(object):
             print('Getting profile photo link for user:{0}'.format(user_id))
             return photo_link
         except TypeError:
-            print('Profile_photo_link parsing error| user_id: {0}'.format(user_id))
+            print('Profile_photo_link parsing error | user_id: {0}'.format(user_id))
             return None
 
     def parse_group_members(self, group_id):
@@ -129,29 +130,38 @@ class VK(object):
 
 
     def _check_group_members(self, member_list_unsorted):
+        #Checking group members on specific  state
+        #Sex, last_seen
         vk_id_list = []
         month_ago = datetime.datetime.now().timestamp() - 2592000 # 2592000 - One month in seconds, average
         for member in member_list_unsorted:
             member_sex = member["sex"]
             member_last_seen = member["last_seen"]["time"]
-            if member_sex == config.vk_male_sex and member_last_seen > month_ago:
+            if ( member_sex == config.vk_male_sex or member_sex == config.vk_female_sex )and member_last_seen > month_ago:
                 vk_id_list.append(member["uid"])
         return vk_id_list
 
 
 
     def autolikes_start(self):
-        #Get user_list from Database
+        """
+        Getting users from db
+        Parsing users main photo link
+        Set like on main photo
+        :return:
+        """
+        users_id_list = Users.get_fresh_vk_users()
 
-        user_id_list = [6256891, 355428889, 18393105]
-        for user in user_id_list:
-            photo_link = VK.get_profile_photo_link(user)
+        for user in users_id_list:
+            photo_link = VK.get_profile_photo_link(user.vk_user_id)
             if not photo_link:
+                print("User: {0} - VK photo not found".format(user.vk_user_id))
                 continue #next user_id if no photo_link
             self.set_like(photo_link=photo_link, content_type= 'photo')
             time.sleep(2)
 
     def set_like(self, photo_link, content_type):
+        #TODO change to staticmethod, add token to argument
         photo_link = photo_link.split('_')
         owner_id = photo_link[0]
         item_id = photo_link[1]
@@ -160,5 +170,5 @@ class VK(object):
             t=content_type, o=owner_id, i=item_id, k=self.bot_token)
         r = requests.get(url)
         print(r.text)
-        print('Liked: vk.com/{0}'.format(photo_link))
+        print('Liked: vk.com/{0}'.format(photo_link[0]))
         #TODO add url handler

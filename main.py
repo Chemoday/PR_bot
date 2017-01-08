@@ -10,8 +10,9 @@ def start_bot():
     Database.create_db()
     vk = VK(email=config.vk_login,
             password=config.vk_password)
-    Database.Groups.set_group_info(config.groups_to_parse)
-    vk.parse_group_members(group_id=109991106)
+    #Database.Groups.set_group_info(config.groups_to_parse)
+    #vk.parse_group_members(group_id=109991106)
+    vk.autolikes_start()
 
 
 start_bot()

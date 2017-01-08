@@ -104,24 +104,38 @@ class Groups(BaseModel):
             print("Group id:{0} not saved".format(group_id))
 
 class Users(BaseModel):
-    vk_user_id = peewee.IntegerField(null=True, default=None)
+    vk_user_id = peewee.IntegerField(null=True, default=None, unique=True)
     vk_group_id = peewee.IntegerField(null=True, default=None)
     vk_likes_count = peewee.IntegerField(default=0)
     created_dt = peewee.DateField(default=datetime.datetime.now())
 
+    def __repr__(self):
+        output = "vk_id:{0} | vk_group_id:{1} | create_dt : {2}".format(self.vk_user_id, self.vk_group_id,
+                                                                        self.created_dt)
+        return output
+
     @staticmethod
     def get_fresh_vk_users():
-        user_list = Users.select().where((Users.vk_user_id is not None) & (Users.vk_likes_count != 0)).order_by(
-            Users.created_dt.desc()).limit(100)
-        return user_list
+        #Return oldest users with 0 likes | 100 max
+        #Type Users class
+        max_users = 100
+        users_list = Users.select().where((Users.vk_user_id is not None) & (Users.vk_likes_count == 0)).order_by(
+            Users.created_dt.asc()).limit(max_users)
+        return users_list
 
 
     @staticmethod
     def save_users(members_list):
         #TODO save for various networks
         for user in members_list:
-            row = Users(vk_user_id=user.vk_id, vk_group_id=user.vk_group_id)
-            row.save()
+            try:
+                print(user)
+                row = Users(vk_user_id=user.vk_id, vk_group_id=user.vk_group_id)
+                row.save()
+            except peewee.IntegrityError:
+                print("Error on save {0}".format(user))
+                print("Possible is argument not unique or alredy exist in db")
+
 
 class Statistics(BaseModel):
     total_likes = peewee.IntegerField(default=None)
@@ -144,5 +158,8 @@ def create_db():
         Groups.create_table()
         print("Groups table is created")
 
+    if not Users.table_exists():
+        Users.create_table()
+        print("Users table is created")
 
 
