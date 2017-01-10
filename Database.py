@@ -34,25 +34,18 @@ class Keys(BaseModel):
             print('Error no key in db')
             return None
 
+
+
     @staticmethod
     def set_vk_token(bot_login, token):
         expire_dt = datetime.datetime.now().timestamp() + 86400 #86400 - one day token
         try:
             row = Keys.get(Keys.bot_login == bot_login)
             print("Auth key got succesfully")
-        except:
-            try:
+        except peewee.DoesNotExist:
+            row = None
 
-                row = Keys(bot_login=bot_login, vk_token=token,
-                           vk_token_expire_dt=expire_dt)
-                row.save(force_insert=False)
-                print("Token saved")
-                return
-            except peewee.IntegrityError:
-                row = None
-                print("Error on save new user")
-
-        if not row:
+        if row:
             try:
                 q = Keys.update(vk_token=token,
                                 vk_token_expire_dt=expire_dt).where(Keys.bot_login == bot_login)
@@ -62,7 +55,16 @@ class Keys(BaseModel):
             except:
                 print("Error on updating key")
                 return
-
+        else:
+            try:
+                row = Keys(bot_login=bot_login, vk_token=token,
+                           vk_token_expire_dt=expire_dt)
+                row.save(force_insert=False)
+                print("Token saved")
+                return
+            except peewee.IntegrityError:
+                row = None
+                print("Error on save new user")
 class Groups(BaseModel):
     group_id = peewee.IntegerField(primary_key=True, unique=True)
     offset = peewee.IntegerField(default=0)

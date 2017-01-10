@@ -2,7 +2,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
 
-os_type = "Windows"
+os_type = "linux"
 
 
 #vk config
@@ -10,7 +10,7 @@ vk_login = 'aleksandr.kuhhar@gmail.com'
 vk_password = '########*'
 vk_profile_link = 'http://vk.com/id'
 vk_like_api = 'https://api.vk.com/method/likes.add?'
-vk_token_url = "http://api.vkontakte.ru/oauth/authorize?client_id=4984258" \
+vk_token_url = "https://oauth.vk.com/authorize?client_id=4984258" \
                "&scope=wall&redirect_uri=http://api.vk.com/blank.html" \
                "&display=page&response_type=token"
 vk_group_members_api = 'https://api.vk.com/method/groups.getMembers?'

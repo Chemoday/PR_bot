@@ -26,7 +26,7 @@ class VK(object):
         #Check bot token status, that token is exist and not expired
 
         now = datetime.datetime.now().timestamp()
-        if token.vk_token_expire_dt < now:
+        if token.vk_token_expire_dt > now:
             print("Token is active")
             return True
         else:
@@ -38,7 +38,7 @@ class VK(object):
         token = Keys.get_vk_token(email=self.bot_email)
         if token:
             if self.check_token(token):
-                return token
+                return token.vk_token
 
         return self.create_token()
 
@@ -49,7 +49,6 @@ class VK(object):
                 driver = webdriver.PhantomJS(executable_path='C:/Program Files (x86)/phantomjs/bin/phantomjs.exe',
                                              service_args=config.service_args,
                                              desired_capabilities=config.dcap)
-
             else:
                 driver = webdriver.PhantomJS(service_args=config.service_args,
                                              desired_capabilities=config.dcap)
@@ -160,15 +159,17 @@ class VK(object):
             self.set_like(photo_link=photo_link, content_type= 'photo')
             time.sleep(2)
 
-    def set_like(self, photo_link, content_type):
+    def set_like(self, photo_link, content_type='photo'):
         #TODO change to staticmethod, add token to argument
+        print("link: {0}".format(photo_link))
         photo_link = photo_link.split('_')
         owner_id = photo_link[0]
         item_id = photo_link[1]
         print(self.bot_token)
-        url = config.vk_like_api + 'type={t}&owner_id={o}&item_id{i}&access_key={k}'.format(
+        url = config.vk_like_api + 'type={t}&owner_id={o}&item_id={i}&access_key={k}'.format(
             t=content_type, o=owner_id, i=item_id, k=self.bot_token)
+        print(url)
         r = requests.get(url)
         print(r.text)
-        print('Liked: vk.com/{0}'.format(photo_link[0]))
+        print('Liked: vk.com/id{0}'.format(photo_link[0]))
         #TODO add url handler
