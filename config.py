@@ -14,9 +14,8 @@ vk_token_url = "https://oauth.vk.com/authorize?client_id=4984258" \
                "&scope=wall&redirect_uri=http://api.vk.com/blank.html" \
                "&display=page&response_type=token"
 vk_group_members_api = 'https://api.vk.com/method/groups.getMembers?'
-groups_to_parse= 109991106
-vk_male_sex = 2
-vk_female_sex = 1
+groups_to_parse=109991106
+vk_sex_type = [1, 2]
 
 #PhantomJS config
 user_agent = (

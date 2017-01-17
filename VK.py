@@ -60,16 +60,33 @@ class VK(object):
         driver.get(config.vk_token_url)
 
         try:
+            driver.save_screenshot("screen.png")
             user_input = driver.find_element_by_name("email")
             user_input.send_keys(self.bot_email)
             password_input = driver.find_element_by_name("pass")
             password_input.send_keys(self.bot_password)
             submit = driver.find_element_by_id("install_allow")
+            driver.save_screenshot("screen1.png")
             submit.click()
             time.sleep(2)
+            driver.save_screenshot("screen2.png")
+        except:
+            print("Problem in login and password input screen")
+            return
+
+        try:
+            #TODO add ip check
+            #App permission window is displayed if token requested on new ip address
+            submit = driver.find_element_by_class_name("flat_button fl_r button_indent")
+            submit.click()
+        except:
+            print("App permission window is missed")
+
+        try:
             current_url = driver.current_url
             #TODO add fail proof parsing
             access_list = (current_url.split("#"))[1].split("&")
+            driver.save_screenshot("screen3.png")
             token = (access_list[0].split("="))[1]  # access_token
             driver.close()
             driver.quit()
@@ -77,7 +94,7 @@ class VK(object):
             print(token)
             Keys.set_vk_token(bot_login=self.bot_email, token=token)
         except:
-            print("Problem with token page, something is missed")
+            print("Problem in parsing token url")
             return
 
         return token
@@ -136,7 +153,7 @@ class VK(object):
         for member in member_list_unsorted:
             member_sex = member["sex"]
             member_last_seen = member["last_seen"]["time"]
-            if ( member_sex == config.vk_male_sex or member_sex == config.vk_female_sex )and member_last_seen > month_ago:
+            if ( member_sex in config.vk_sex_type) and member_last_seen > month_ago:
                 vk_id_list.append(member["uid"])
         return vk_id_list
 
@@ -161,15 +178,25 @@ class VK(object):
 
     def set_like(self, photo_link, content_type='photo'):
         #TODO change to staticmethod, add token to argument
-        print("link: {0}".format(photo_link))
+        #print("link: {0}".format(photo_link))
         photo_link = photo_link.split('_')
         owner_id = photo_link[0]
         item_id = photo_link[1]
-        print(self.bot_token)
-        url = config.vk_like_api + 'type={t}&owner_id={o}&item_id={i}&access_key={k}'.format(
+        #print(self.bot_token)
+        url = config.vk_like_api + 'type={t}&owner_id={o}&item_id={i}&access_token={k}&v=5.62'.format(
             t=content_type, o=owner_id, i=item_id, k=self.bot_token)
-        print(url)
+        #print(url)
         r = requests.get(url)
-        print(r.text)
+        response = r.text
+        print(response)
+        self.__check_response_status(response)
         print('Liked: vk.com/id{0}'.format(photo_link[0]))
         #TODO add url handler
+
+
+    def __check_response_status(self, response):
+        response = json.loads(response)
+        if "error" in response.keys():
+            print("Error: {0}".format(response['error']['error_msg']))
+
+
