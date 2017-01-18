@@ -1,7 +1,7 @@
 import config
 from VK import VK
 import Database
-from Utils import detect_system
+from Utils import detect_system, vk_groups_to_parse
 
 
 
@@ -11,8 +11,8 @@ def start_bot():
     vk = VK(email=config.vk_login,
             password=config.vk_password)
     Database.Groups.set_group_info(config.groups_to_parse)
-    vk.parse_group_members(group_id=109991106)
-    vk.autolikes_start()
+    #vk.parse_group_members(group_id=109991106)
+    #vk.autolikes_start()
 
 
 start_bot()

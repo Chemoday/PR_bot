@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 import json
 import config
 from Users import User
+import Utils
 
 
 
@@ -128,20 +129,37 @@ class VK(object):
     def parse_group_members(self, group_id):
 
         group_info = Groups.get_group_info(group_id=group_id)
-        url_params = 'group_id={id}&sort=id_desc&&fields=sex,last_seen&offset={offset}&count=1000'.format(
-            id=group_id, offset=group_info.offset
+        if (group_info.total_users - group_info.offset) < 3:
+            parse_amount = group_info.total_users - group_info.offset
+        else:
+            parse_amount = 3
+        print("parse amount: ", parse_amount)
+        url_params = 'group_id={id}&sort=id_desc&&fields=sex,last_seen&offset={offset}&count={count}'.format(
+            id=group_id, offset=group_info.offset, count=parse_amount
         )
         url = config.vk_group_members_api + url_params
         r = requests.get(url)
         group_data = json.loads(r.text)
         members_list_unsorted = group_data["response"]["users"]
-        group_members_total = group_data["response"]["count"]
+        members_total = group_data["response"]["count"]
         vk_id_list = self._check_group_members(member_list_unsorted=members_list_unsorted)
         members_list = []
         for vk_id in vk_id_list:
             user = User(vk_id=vk_id, vk_group_id=group_id)
             members_list.append(user)
         Users.save_users(members_list)
+
+        offset = group_info.offset + parse_amount
+        fully_parsed = False
+
+        if offset >= group_info.total_users:
+            offset = group_info.total_users
+            fully_parsed = True
+
+        Groups.update_group_info(group_id=group_id, offset=offset,
+                                 total_users=members_total, useful_users=group_info.useful_users + len(members_list),
+                                 fully_parsed=fully_parsed
+                                 )
 
 
 
@@ -199,4 +217,16 @@ class VK(object):
         if "error" in response.keys():
             print("Error: {0}".format(response['error']['error_msg']))
 
+    @staticmethod
+    def check_for_new_groups_ids():
+        newly_added = 0
+        group_ids = Groups.get_groups_ids_list()
+        for group_id in Utils.vk_groups_to_parse:
+            if group_id in group_ids:
+                continue
+            else:
+                Groups.set_group_info(group_id=group_id)
+                newly_added+=1
+        if newly_added > 0:
+            print("Added {0} new groups".format(newly_added))
 

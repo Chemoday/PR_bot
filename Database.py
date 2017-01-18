@@ -71,17 +71,20 @@ class Groups(BaseModel):
     total_users = peewee.IntegerField(default=0)
     useful_users = peewee.IntegerField(default=0)
     fully_parsed = peewee.BooleanField(default=False)
+    domain = peewee.TextField(default='VK')
+
     #TODO add group name
 
     def __repr__(self):
-        output = 'Group id: {0}'.format(self.group_id)
+        output = 'Group id: {0} | Domain:{1}'.format(self.group_id, self.domain)
         return output
 
 
     @staticmethod
-    def update_group_info(group_id, offset, total_users):
+    def update_group_info(group_id, offset, total_users, useful_users, fully_parsed=False):
         try:
-            q = Groups.update(offset=offset, total_users=total_users).where(Groups.group_id == group_id)
+            q = Groups.update(offset=offset, total_users=total_users,
+                              useful_users=useful_users, fully_parsed=fully_parsed).where(Groups.group_id == group_id)
             q.execute()
         except:
             print("Error on updating groups info")
@@ -97,13 +100,36 @@ class Groups(BaseModel):
 
     @staticmethod
     def set_group_info(group_id):
+        #Use only for initialize group info, for non exist groups
+        #If group is exist - use update method
         try:
             row = Groups(group_id=group_id)
             row.save(force_insert=True)
-            print("Group is saved")
-            print(row)
+            print("Group: {0} is saved".format(group_id))
         except peewee.IntegrityError:
             print("Group id:{0} not saved".format(group_id))
+
+
+    @staticmethod
+    def get_group_list():
+        """
+        Retrieving all groups from db with ascending order by offset
+        :return:
+        """
+        groups_list = Groups.select().order_by(Groups.offset.asc())
+        return groups_list
+
+    @staticmethod
+    def get_groups_ids_list():
+        groups_ids = []
+        groups_data = Groups.select()
+
+        if not groups_data:
+            return groups_ids
+
+        for group in groups_data:
+            groups_ids.append(group.group_id)
+        return groups_ids
 
 class Users(BaseModel):
     vk_user_id = peewee.IntegerField(null=True, default=None, unique=True)
@@ -129,6 +155,7 @@ class Users(BaseModel):
     @staticmethod
     def save_users(members_list):
         #TODO save for various networks
+        #Add for bunch save if needed
         for user in members_list:
             try:
                 print(user)
