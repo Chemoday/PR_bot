@@ -1,6 +1,6 @@
 import platform
 import config
-
+import VK
 
 def detect_system():
     platform_type = platform.system()

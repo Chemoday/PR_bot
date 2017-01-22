@@ -166,15 +166,35 @@ class Users(BaseModel):
                 print("Possible is argument not unique or alredy exist in db")
 
 
+    @staticmethod
+    def update_likes_count(user_id, domain="vk"):
+        try:
+            q = Users.update(vk_likes_count=Users.vk_likes_count + 1).where(Users.vk_user_id == user_id)
+            q.execute()
+        except:
+            print("Error on updating likes| Uid = {0}".format(user_id))
+
+
 class Statistics(BaseModel):
-    total_likes = peewee.IntegerField(default=None)
+    vk_likes_success = peewee.IntegerField(default=0)
+    vk_likes_fails = peewee.IntegerField(default=0)
 
     @staticmethod
-    def update_likes():
-        r = Statistics.get()
-        q = Statistics.update(total_likes=r.total_likes + 1)
-        q.execute()
-
+    def update_likes_vk(status):
+        #status='success'
+        #q = Groups.update(offset=offset, total_users=total_users,
+        #                      useful_users=useful_users, fully_parsed=fully_parsed).where(Groups.group_id == group_id)
+        try:
+            if status == 'success':
+                q = Statistics.update(vk_likes_success=Statistics.vk_likes_success + 1).where(
+                    Statistics.id == 1)
+                q.execute()
+            else:
+                q = Statistics.update(vk_likes_fails=Statistics.vk_likes_fails + 1).where(
+                    Statistics.id == 1)
+                q.execute()
+        except peewee.IntegrityError:
+            print("Error on updating Statistics | likes_vk")
 
 
 
@@ -191,4 +211,8 @@ def create_db():
         Users.create_table()
         print("Users table is created")
 
+    if not Statistics.table_exists():
+        Statistics.create_table()
+        Statistics().save()
+        print("Statistics table was created")
 

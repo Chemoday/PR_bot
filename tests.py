@@ -1,15 +1,23 @@
 import time
 import config
 from VK import VK
-from Database import Groups, create_db
+from Database import Groups, Users, create_db
 
-# create_db()
-vk = VK(email=config.vk_login,
+
+def delete_group_and_ids():
+    Groups.delete().execute()
+    Users.delete().execute()
+
+def start_bot():
+    create_db()
+    vk = VK(email=config.vk_login,
             password=config.vk_password)
+    delete_group_and_ids()
+    vk.check_for_new_groups_ids()
+    vk.parse_groups()
+    vk.autolikes_start()
 
 
-VK.check_for_new_groups_ids()
-group_list = Groups.get_group_list()
-for group in group_list:
-    vk.parse_group_members(group_id=group.group_id)
-    time.sleep(1)
+start_bot()
+
+

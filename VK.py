@@ -1,7 +1,7 @@
 import time
 import datetime
 from selenium import webdriver
-from Database import Keys, Groups, Users
+from Database import Keys, Groups, Users, Statistics
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -61,16 +61,16 @@ class VK(object):
         driver.get(config.vk_token_url)
 
         try:
-            driver.save_screenshot("screen.png")
+
             user_input = driver.find_element_by_name("email")
             user_input.send_keys(self.bot_email)
             password_input = driver.find_element_by_name("pass")
             password_input.send_keys(self.bot_password)
             submit = driver.find_element_by_id("install_allow")
-            driver.save_screenshot("screen1.png")
+
             submit.click()
             time.sleep(2)
-            driver.save_screenshot("screen2.png")
+
         except:
             print("Problem in login and password input screen")
             return
@@ -87,7 +87,6 @@ class VK(object):
             current_url = driver.current_url
             #TODO add fail proof parsing
             access_list = (current_url.split("#"))[1].split("&")
-            driver.save_screenshot("screen3.png")
             token = (access_list[0].split("="))[1]  # access_token
             driver.close()
             driver.quit()
@@ -126,13 +125,15 @@ class VK(object):
             print('Profile_photo_link parsing error | user_id: {0}'.format(user_id))
             return None
 
-    def parse_group_members(self, group_id):
-
+    @staticmethod
+    def parse_group_members(group_id):
+        print("group_id:{0}".format(group_id))
         group_info = Groups.get_group_info(group_id=group_id)
-        if (group_info.total_users - group_info.offset) < 3:
+        if (group_info.total_users != 0) & ((group_info.total_users - group_info.offset) < config.vk_parse_amount):
+            print("{0} - {1}".format(group_info.total_users, group_info.offset))
             parse_amount = group_info.total_users - group_info.offset
         else:
-            parse_amount = 3
+            parse_amount = 1000
         print("parse amount: ", parse_amount)
         url_params = 'group_id={id}&sort=id_desc&&fields=sex,last_seen&offset={offset}&count={count}'.format(
             id=group_id, offset=group_info.offset, count=parse_amount
@@ -142,7 +143,7 @@ class VK(object):
         group_data = json.loads(r.text)
         members_list_unsorted = group_data["response"]["users"]
         members_total = group_data["response"]["count"]
-        vk_id_list = self._check_group_members(member_list_unsorted=members_list_unsorted)
+        vk_id_list = VK._check_group_members(member_list_unsorted=members_list_unsorted)
         members_list = []
         for vk_id in vk_id_list:
             user = User(vk_id=vk_id, vk_group_id=group_id)
@@ -161,11 +162,28 @@ class VK(object):
                                  fully_parsed=fully_parsed
                                  )
 
+    @staticmethod
+    def parse_groups():
+        """
+        :return:
+         Must be running in parallel process
+         to fill Groups table with users
+        """
+        group_list = Groups.get_group_list()
+        for group in group_list:
+            print(group)
+            VK.parse_group_members(group_id=group.group_id)
+            time.sleep(1)
 
-
-    def _check_group_members(self, member_list_unsorted):
-        #Checking group members on specific  state
+    @staticmethod
+    def _check_group_members(member_list_unsorted):
+        """
+        :param
+        :return:
+        Checking group members on specific  state
         #Sex, last_seen
+        """
+
         vk_id_list = []
         month_ago = datetime.datetime.now().timestamp() - 2592000 # 2592000 - One month in seconds, average
         for member in member_list_unsorted:
@@ -179,43 +197,47 @@ class VK(object):
 
     def autolikes_start(self):
         """
+        :return:
         Getting users from db
         Parsing users main photo link
         Set like on main photo
-        :return:
         """
         users_id_list = Users.get_fresh_vk_users()
-
+        print("Got {0} fresh users from server".format(len(users_id_list)))
         for user in users_id_list:
             photo_link = VK.get_profile_photo_link(user.vk_user_id)
             if not photo_link:
                 print("User: {0} - VK photo not found".format(user.vk_user_id))
                 continue #next user_id if no photo_link
-            self.set_like(photo_link=photo_link, content_type= 'photo')
+            VK.set_like(photo_link=photo_link, content_type='photo', token=self.bot_token)
             time.sleep(2)
 
-    def set_like(self, photo_link, content_type='photo'):
+    @staticmethod
+    def set_like(photo_link,token, content_type='photo'):
         #TODO change to staticmethod, add token to argument
-        #print("link: {0}".format(photo_link))
         photo_link = photo_link.split('_')
         owner_id = photo_link[0]
         item_id = photo_link[1]
-        #print(self.bot_token)
-        url = config.vk_like_api + 'type={t}&owner_id={o}&item_id={i}&access_token={k}&v=5.62'.format(
-            t=content_type, o=owner_id, i=item_id, k=self.bot_token)
-        #print(url)
+        url = config.vk_like_api + 'type={t}&owner_id={o}&item_id={i}&access_token={tk}&v=5.62'.format(
+            t=content_type, o=owner_id, i=item_id, tk=token)
         r = requests.get(url)
         response = r.text
         print(response)
-        self.__check_response_status(response)
+        if VK.__check_response_on_errors(response):
+            Statistics.update_likes_vk(status='failed')
+            return
+
         print('Liked: vk.com/id{0}'.format(photo_link[0]))
-        #TODO add url handler
+        Users.update_likes_count(user_id=owner_id, domain="vk")
+        Statistics.update_likes_vk(status='success')
 
-
-    def __check_response_status(self, response):
+    @staticmethod
+    def __check_response_on_errors(response):
         response = json.loads(response)
         if "error" in response.keys():
             print("Error: {0}".format(response['error']['error_msg']))
+            return False
+        return True
 
     @staticmethod
     def check_for_new_groups_ids():
@@ -229,4 +251,4 @@ class VK(object):
                 newly_added+=1
         if newly_added > 0:
             print("Added {0} new groups".format(newly_added))
-
+        return
