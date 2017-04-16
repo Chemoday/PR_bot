@@ -13,9 +13,9 @@ import Utils
 
 class VK(object):
 
-    def __init__(self, email, password):
+    def __init__(self, email):
         self.bot_email = email
-        self.bot_password = Keys.get_bot_pass(email)
+        self.bot_password = Keys.get_bot_VK_pass(email)
         #self.bot_password = password Change on more secure method
         self.bot_token = self.get_token()
 

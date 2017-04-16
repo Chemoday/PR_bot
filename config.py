@@ -17,6 +17,9 @@ vk_group_members_api = 'https://api.vk.com/method/groups.getMembers?'
 vk_parse_amount = 1000
 vk_sex_type = [1, 2]
 
+
+
+
 #PhantomJS config
 user_agent = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) " +

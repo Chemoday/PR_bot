@@ -11,24 +11,34 @@ class BaseModel(peewee.Model):
 
 
 class Keys(BaseModel):
-    bot_login = peewee.TextField(default="")
-    bot_password = peewee.TextField(default="")
+    bot_VK_login = peewee.TextField(default="")
+    bot_VK_password = peewee.TextField(default="")
     vk_token = peewee.TextField(default="", null=True)
     vk_token_expire_dt = peewee.IntegerField(null=True)
 
+    bot_FB_login = peewee.TextField(default="")
+    bot_FB_password = peewee.TextField(default="")
+
     def __repr__(self):
-        output = "{0} | {1} | {2}".format(self.bot_login, self.vk_token, self.vk_token_expire_dt)
+        output = "VL: {0} | {1} |" \
+                 "FB: {2} | {3} |".format(self.bot_VK_login, self.vk_token,
+                                          self.bot_FB_login, self.bot_FB_password)
         return output
 
     @staticmethod
-    def get_bot_pass(email):
-        bot_pass = Keys.get(Keys.bot_login == email)
-        return bot_pass.bot_password
+    def get_bot_VK_pass(bot_VK_login):
+        bot = Keys.get(Keys.bot_VK_login == bot_VK_login)
+        return bot.bot_VK_password
+
+    @staticmethod
+    def get_bot_FB_pass(bot_FB_login):
+        bot = Keys.get(Keys.bot_FB_login == bot_FB_login)
+        return bot.bot_FB_password
 
     @staticmethod
     def get_vk_token(email):
         try:
-            keys = Keys.get(Keys.bot_login == email)
+            keys = Keys.get(Keys.bot_VK_login == email)
             return keys
         except Keys.DoesNotExist:
             print('Error no key in db')
@@ -40,7 +50,7 @@ class Keys(BaseModel):
     def set_vk_token(bot_login, token):
         expire_dt = datetime.datetime.now().timestamp() + 86400 #86400 - one day token
         try:
-            row = Keys.get(Keys.bot_login == bot_login)
+            row = Keys.get(Keys.bot_VK_login == bot_login)
             print("Auth key got succesfully")
         except peewee.DoesNotExist:
             row = None
@@ -48,7 +58,7 @@ class Keys(BaseModel):
         if row:
             try:
                 q = Keys.update(vk_token=token,
-                                vk_token_expire_dt=expire_dt).where(Keys.bot_login == bot_login)
+                                vk_token_expire_dt=expire_dt).where(Keys.bot_VK_login == bot_login)
                 q.execute()
                 print("Key was updated successfully")
                 return
